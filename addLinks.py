@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import csv, os, re
 from lxml import etree
 
@@ -56,9 +57,9 @@ def processFullCard(tei_id,journal):
 				if mon in title_text.lower():
 					month = months[mon]
 
-			thirty_one_day_re = r' ([1-9]|[12][0-9]|3[01]) '
-			thirty_day_re = r' ([1-9]|[12][0-9]|30) '
-			twenty_nine_day_re = r' ([1-9]|[12][0-9]) '
+			thirty_one_day_re = r'( )?(1er|[1-9]|[12][0-9]|3[01]) '
+			thirty_day_re = r'( )?(1er|[1-9]|[12][0-9]|30) '
+			twenty_nine_day_re = r'( )?(1er|[1-9]|[12][0-9]) '
 
 			day = None
 			if month in ['01','03','05','07','08','10','12']:
@@ -70,16 +71,30 @@ def processFullCard(tei_id,journal):
 
 			if day_result:
 				day = day_result[0].strip(' ')
+				if day == '1er':
+					day = '01'
+				elif len(day) == 1:
+					day = '0' + day
+#			else:
+#				day = '00'
 
 			if day and month and year:
 #				print(day,month,year)
-				return 'http://gallica.bnf.fr/ark:/12148/cb34355551z/date' + year + month + day + '.item"'
+				return 'http://gallica.bnf.fr/ark:/12148/cb34355551z/date' + year + month + day + '.item'
 			#print(etree.tostring(title))
 #		print(titles)
 #		print(etree.tostring(tree.getroot()))
 #		print(card)
 
-def addLinks(cardReader,output_table):
+def writeResults(output_table,header):
+	with open('JournalLinks.csv','w') as outfile:
+		outfileWriter = csv.writer(outfile)
+		outfileWriter.writerow(header+['LINK'])
+
+		for row in output_table:
+			outfileWriter.writerow(row)
+
+def addLinks(cardReader,output_table,header):
 	for card in cardReader:
 		if card['LEVEL'] == 'j':
 			if card['TITLE'] == 'Figaro':
@@ -87,11 +102,13 @@ def addLinks(cardReader,output_table):
 				new_row = [item for (label, item) in card.items()]
 				new_row.append(generated_link)
 				print(new_row)
-#				output_table.append([item for (label, item) in card.items()])
+				output_table.append(new_row)
 			else:
 				output_table.append([item for (label, item) in card.items()])
 		else:
 			output_table.append([item for (label, item) in card.items()])
+
+	writeResults(output_table,header)
 
 def main():
 	output_table = []
@@ -102,7 +119,7 @@ def main():
 
 		output_table.append(header)
 
-		addLinks(cardReader,output_table)
+		addLinks(cardReader,output_table,header)
 
 #	print(output_table)
 
